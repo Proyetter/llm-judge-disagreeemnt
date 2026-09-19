@@ -1,0 +1,82 @@
+# Judge models and generation settings
+#
+# Values below were read off the source in scripts/, not from memory. Anything
+# that was never logged is marked "unknown" rather than guessed.
+# Corresponds to Table I of the paper.
+
+api:
+  provider: openrouter
+  base_url: https://openrouter.ai/api/v1
+  client: openai-python, OpenAI-compatible interface
+  auth_env_var: OPENROUTER_API_KEY
+
+benchmark:
+  dataset: ScalerLab/JudgeBench
+  loader: datasets.load_dataset("ScalerLab/JudgeBench")
+  revision: unknown        # TODO: pin the commit hash if you can recover it
+  splits_used: [gpt, claude]
+  item_filter: >
+    Rows whose label is not a clean A>B or B>A preference are skipped at load
+    time by ground_truth_winner() in judge_judgebench.py.
+
+generation_defaults:
+  temperature: 0
+  max_tokens: 150
+  top_p: not set, provider default
+  seed: not set
+  n_reps_per_ordering: 3
+  orderings: [AB, BA]
+  workers: 8               # concurrent API calls in flight
+
+retry_policy:
+  max_attempts: 3
+  retry_on:
+    - API exception of any kind
+    - reply missing a parseable verdict or confidence
+    - confidence outside the range 50 to 100
+  backoff: sleep 2**attempt seconds, so 1s then 2s then 4s
+  on_exhaustion: >
+    Record written with parse_error true and no verdict. The item is excluded
+    from analysis unless it has n_reps valid judgments under each ordering.
+
+judges:
+  - id: anthropic/claude-3-haiku
+    developer: Anthropic
+    max_tokens: 150
+
+  - id: anthropic/claude-sonnet-5
+    developer: Anthropic
+    max_tokens: unknown        # TODO: record the value you passed; 150 was too
+                               # low for this model before the reasoning flag
+    reasoning_effort: low      # required. Passed through as
+                               # extra_body={"reasoning": {"effort": "low"}}.
+                               # Without it the model spent the whole token
+                               # budget on hidden reasoning and returned empty
+                               # output on every attempt.
+
+  - id: deepseek/deepseek-chat
+    developer: DeepSeek
+    max_tokens: 150
+
+  - id: google/gemini-2.5-flash
+    developer: Google
+    max_tokens: 150
+
+  - id: meta-llama/llama-3.1-8b-instruct
+    developer: Meta
+    max_tokens: 150
+
+  - id: meta-llama/llama-3.3-70b-instruct
+    developer: Meta
+    max_tokens: 150
+
+  - id: openai/gpt-4o-mini
+    developer: OpenAI
+    max_tokens: 150
+
+# Evaluated during piloting and excluded from the paper: these returned empty
+# output at an unacceptable rate even with a raised token budget.
+# TODO: keep only if accurate, otherwise delete this block.
+excluded_during_piloting:
+  - google/gemini-2.5-pro
+  - deepseek/deepseek-r1

@@ -1,0 +1,13 @@
+# Python 3.12 (conda env named "judge")
+#
+# TODO: replace these unpinned names with exact versions before pushing.
+# From your own environment:
+#     conda activate judge
+#     pip freeze > requirements.txt
+# then delete any unrelated packages and keep this header comment.
+
+numpy          # all analysis scripts
+openai         # collection only, OpenAI-compatible client against OpenRouter
+datasets       # collection only, loads ScalerLab/JudgeBench
+tqdm           # collection only, progress bars
+matplotlib     # only needed if you add back the plotting scripts
